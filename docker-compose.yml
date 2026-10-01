@@ -1,0 +1,106 @@
+services:
+  mysql:
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: authdb
+      MYSQL_USER: auth
+      MYSQL_PASSWORD: authpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+
+  auth_service:
+    image: auth_service
+    environment:
+      MYSQL_URI: mysql+pymysql://auth:authpass@mysql:3306/authdb
+      JWT_SECRET_KEY: secretkey
+    ports:
+      - "5001:5000"
+    depends_on:
+      - mysql
+
+  employee_service:
+    image: employee_service
+    environment:
+      JWT_SECRET_KEY: secretkey
+      MONGO_URI: mongodb://mongodb:27017
+      MONGO_DB_NAME: funddb
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+    ports:
+      - "5002:5000"
+    depends_on:
+      - mongodb
+      - redis
+
+  director_service:
+    image: director_service
+    environment:
+      JWT_SECRET_KEY: secretkey
+      MONGO_URI: mongodb://mongodb:27017
+      MONGO_DB_NAME: funddb
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GANACHE_URL: http://ganache:8545
+    ports:
+      - "5003:5000"
+    depends_on:
+      - mongodb
+      - redis
+
+  ganache:
+    image: trufflesuite/ganache-cli
+    command: --deterministic --accounts 10 --host 0.0.0.0
+    ports:
+      - "8545:8545"
+
+volumes:
+  mongo_data:
+  mysql_data:
+
+    
+
+#python -m venv venv
+#venv\Scripts\activate
+
+#docker pull python:3
+#docker pull mysql
+#docker pull mongo
+#docker pull redis
+#docker pull trufflesuite/ganache-cli
+#docker pull ethereum/solc:0.8.18
+
+#.\director_service\compile.ps1 voting.sol
+
+#docker build -f ./auth_service/main.dockerfile -t auth_service ./auth_service
+#docker build -f ./employee_service/main.dockerfile -t employee_service ./employee_service
+#docker build -f ./director_service/main.dockerfile -t director_service ./director_service
+
+#docker compose up
+#kubectl apply -f kubernetes/k8s.yaml
+#kubectl get pods -w
+
+#kubectl delete deployment --all
+#kubectl delete pod --all
+#kubectl rollout restart deployment auth-service
+#kubectl port-forward service/ganache 8545:8545
+#kubectl exec -it deployment/auth-service -- env | findstr JWT
+
+#kubectl port-forward service/mysql 3306:3306
+#kubectl port-forward service/mongodb 27017:27017
+#kubectl port-forward service/redis 6379:6379
